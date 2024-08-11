@@ -1,0 +1,6 @@
+[FORMAT]
+indent-string='  '
+max-line-length=130
+
+[MESSAGES CONTROL]
+disable=C0114

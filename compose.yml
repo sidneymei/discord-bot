@@ -5,8 +5,7 @@ services:
       - .:/app
       - ./data:/app/data
     environment:
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-      - PRICE_THRESHOLD=${PRICE_THRESHOLD}
-      - CHECK_INTERVAL=${CHECK_INTERVAL}
-      - OWNER_ID=${OWNER_ID}
+      - DISCORD_BOT_TOKEN
+      - OWNER_ID
+      - BOT_NAME
     restart: unless-stopped
