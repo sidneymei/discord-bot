@@ -12,7 +12,6 @@ class Msg:
 
   # Command descriptions
   CMD_DESC_HELP = "Display a list of available commands and their descriptions"
-  CMD_DESC_PING = "Check {bot_name}'s server response time"
   CMD_DESC_TOGGLE = "Enable or disable alerts for when prices cross the ComEd basic electric service price threshold"
   CMD_DESC_CHECK = "View the current hourly average electricity price"
 
