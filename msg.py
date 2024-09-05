@@ -11,9 +11,9 @@ class Msg:
   CENT_SYMBOL = '\xa2'
 
   # Command descriptions
-  CMD_DESC_HELP = "Display a list of available commands and their descriptions"
-  CMD_DESC_TOGGLE = "Enable or disable alerts for when prices cross the ComEd basic electric service price threshold"
-  CMD_DESC_CHECK = "View the current hourly average electricity price"
+  CMD_DESC_HELP = "Shows a list of available commands for the bot."
+  CMD_DESC_TOGGLE = "Toggle alerts when prices exceed the threshold. If none is set, the Illinois fixed rate is used."
+  CMD_DESC_CHECK = "Get the average price for the current hour."
 
   # Help command messages
   HELP_TITLE = "{bot_name} Commands"
@@ -21,7 +21,7 @@ class Msg:
   # Price alert messages
   PRICE_TITLE = "{price:.1f}{cent} per kWh"
   PRICE_DESCRIPTION = "ComEd electricity prices are currently {status}. {detail}"
-  PRICE_FOOTER = "{difference:.1f}{cent} {direction} than the ComEd basic electric service price of {threshold:.1f}{cent}"
+  PRICE_FOOTER = "{difference:.1f}{cent} {direction} than the threshold of {threshold:.1f}{cent}"
 
   # Price status messages
   PRICE_LOW = "low"
@@ -37,7 +37,7 @@ class Msg:
   ALERTS_OFF_TITLE = "Price Alerts Turned Off"
   ALERTS_OFF = "You will no longer receive notifications about electricity price changes."
   ALERTS_ON_TITLE = "Price Alerts Turned On"
-  ALERTS_ON = "You'll be notified when electricity prices change significantly compared to the ComEd basic electric service price."
+  ALERTS_ON = "You'll be notified when electricity prices cross the threshold."
 
   # Error messages
   CMD_ERR = "An error occurred while processing the command."

@@ -3,7 +3,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 
 from msg import Msg
-from logger import log_err
+from logger import logger
 
 def get_color(price):
   """
@@ -98,5 +98,5 @@ async def fetch_comed_price_to_compare(url):
                 price_value = float(price_text.split()[0])
                 return price_value
     except Exception as e:
-      log_err("Error fetching ComEd price to compare: %s" % str(e))
+      logger.error("Error fetching ComEd price to compare: %s" % str(e))
   return None

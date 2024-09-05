@@ -1,7 +1,7 @@
 import time
 import discord
 from discord import app_commands
-from logger import log_cmd, log_err
+from logger import logger
 from msg import Msg
 from utils import create_price_embed
 
@@ -50,7 +50,7 @@ class CheckCooldown:
 cooldown = CheckCooldown(rate=1, per=60)  # 1 use per 60 seconds
 
 @app_commands.command(name="check", description=Msg.CMD_DESC_CHECK)
-async def check_command(interaction: discord.Interaction):
+async def check(interaction: discord.Interaction):
   """
   Check the current ComEd electricity price.
 
@@ -72,13 +72,13 @@ async def check_command(interaction: discord.Interaction):
     if current_price is not None:
       embed = create_price_embed(current_price, interaction.client.price_to_compare)
       await interaction.response.send_message(embed=embed, ephemeral=True)
-      log_cmd(user_id, "check")
       cooldown.update_cooldown(user_id)
+      logger.info('User %s used the "check" command.', user_id)
     else:
       await interaction.response.send_message(Msg.COMED_PRICE_ERR, ephemeral=True)
   # pylint: disable=broad-except
   except Exception as e:
-    log_err(f"Error in check command for user {user_id}: {str(e)}")
+    logger.error('The "check" command failed for user %s: %s', user_id, str(e))
     await interaction.response.send_message(Msg.CMD_ERR, ephemeral=True)
 
 def setup(bot):
@@ -88,4 +88,4 @@ def setup(bot):
   Args:
     bot: The bot instance to add the command to.
   """
-  bot.tree.add_command(check_command)
+  bot.tree.add_command(check)

@@ -6,6 +6,5 @@ services:
       - ./data:/app/data
     environment:
       - DISCORD_BOT_TOKEN
-      - OWNER_ID
       - BOT_NAME
     restart: unless-stopped

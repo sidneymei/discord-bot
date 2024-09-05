@@ -24,22 +24,3 @@ def setup_logger():
   return bot_logger
 
 logger = setup_logger()
-
-def log_cmd(user_id, cmd_name):
-  """
-  Log a command execution.
-
-  Args:
-    user_id (int): The ID of the user who executed the command.
-    cmd_name (str): The name of the command that was executed.
-  """
-  logger.info("User %s used command: %s", user_id, cmd_name)
-
-def log_err(err_msg):
-  """
-  Log an error message.
-
-  Args:
-    err_msg (str): The error message to be logged.
-  """
-  logger.error("Error: %s", err_msg)

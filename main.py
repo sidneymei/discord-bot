@@ -1,8 +1,7 @@
 import asyncio
 import os
-import discord
 from bot import bot
-from logger import log_err
+from logger import logger
 
 async def main():
   """
@@ -15,6 +14,7 @@ async def main():
     ValueError: If the DISCORD_BOT_TOKEN environment variable is not set.
   """
   token = os.environ.get('DISCORD_BOT_TOKEN')
+  
   if not token:
     raise ValueError("No token found. Set the DISCORD_BOT_TOKEN environment variable.")
 
@@ -22,7 +22,7 @@ async def main():
     await bot.start(token)
   # pylint: disable=broad-except
   except Exception as e:
-    log_err(f"An error occurred: {str(e)}")
+    logger.error("An issue occurred during the bot\'s startup: %s", str(e))
   finally:
     await bot.close()
 

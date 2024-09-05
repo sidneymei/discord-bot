@@ -7,7 +7,7 @@ from discord.ext import tasks
 import aiohttp
 
 from database import Database
-from logger import log_err
+from logger import logger
 from msg import Msg
 from utils import create_price_embed, fetch_comed_price_to_compare
 
@@ -24,13 +24,13 @@ class Bot(discord.Client):
     intents = discord.Intents.default()
     intents.message_content = True
     super().__init__(intents=intents)
+
     self.tree = app_commands.CommandTree(self)
     self.comed_api_url = "https://hourlypricing.comed.com/api?type=currenthouraverage"
     self.price_to_compare_url = "https://plugin.illinois.gov/understanding-the-price-to-compare/price-to-compare-comed.html"
     self.price_to_compare = None
     self.db = Database('data/bot.db')
-    self.owner_id = int(os.environ.get('OWNER_ID', 0))  # Default to 0 if not set
-    self.last_price_state = None  # True if above threshold, False if below
+    self.last_price = None
 
   async def setup_hook(self):
     """
@@ -46,7 +46,7 @@ class Bot(discord.Client):
     """
     self.price_to_compare = await fetch_comed_price_to_compare(self.price_to_compare_url)
     if self.price_to_compare is None:
-      log_err("Failed to fetch ComEd price to compare")
+      logger.error("Failed to fetch ComEd price to compare")
 
   async def get_comed_price(self):
     """
@@ -62,38 +62,40 @@ class Bot(discord.Client):
             data = await response.json()
             if data:
               return float(data[0]['price'])
-          log_err(f"Error: HTTP {response.status}")
+          logger.error("Error: HTTP %s", response.status)
       except aiohttp.ClientError as e:
-        log_err(f"Error fetching ComEd price: {str(e)}")
+        logger.error("Error fetching ComEd price %s", str(e))
     return None
 
   @tasks.loop(minutes=5)
-  async def check_comed_prices(self):
+  async def send_price_alerts(self):
     """
     Periodically check ComEd prices and send alerts if necessary.
     """
-    price = await self.get_comed_price()
-    if price is not None:
-      if self.price_to_compare is None:
-        await self.update_price_to_compare()
-      if self.price_to_compare is not None:
-        current_price_state = price > self.price_to_compare
-        if self.last_price_state is None or current_price_state != self.last_price_state:
-          await self.send_price_alerts(price)
-          self.last_price_state = current_price_state
+    current_price = await self.get_comed_price()
+    if current_price is not None and current_price == self.last_price:
+      return
 
-  async def send_price_alerts(self, price):
-    """
-    Send price alerts to all subscribed users.
-
-    Args:
-      price (float): The current ComEd price.
-    """
     subscribed_users = self.db.get_subscribed_users()
-    for user_id in subscribed_users:
-      await self.send_price_alert(user_id, price)
+    for user_id, threshold in subscribed_users:
+      user_threshold = threshold if threshold is not None else self.price_to_compare
+      if user_threshold is not None and (
+        (self.last_price is None) or
+        (self.last_price <= user_threshold < current_price) or
+        (self.last_price > user_threshold >= current_price)
+      ):
+        await self.send_price_alert(user_id, current_price, user_threshold)
 
-  async def send_price_alert(self, user_id, price):
+    self.last_price = current_price
+
+  @tasks.loop(hours=168) # 168 hours = 1 week
+  async def update_price_to_compare_weekly(self):
+    """
+    Update the price to compare on a weekly basis.
+    """
+    await self.update_price_to_compare()
+
+  async def send_price_alert(self, user_id, price, threshold):
     """
     Send a price alert to a specific user.
 
@@ -103,29 +105,21 @@ class Bot(discord.Client):
     """
     try:
       user = await self.fetch_user(user_id)
-      embed = create_price_embed(price, self.price_to_compare)
+      embed = create_price_embed(price, threshold)
       await user.send(embed=embed)
     except discord.errors.Forbidden:
-      log_err(f"Unable to send DM to user {user_id}. User might have DMs disabled.")
+      logger.error("Unable to send DM to user %s. User might have DMs disabled.", user_id)
     except discord.errors.HTTPException as e:
-      log_err(f"Error sending DM to user {user_id}: {str(e)}")
+      logger.error("Error sending DM to user %s: %s", user_id, str(e))
 
   async def on_ready(self):
     """
     Perform actions when the bot is ready and connected to Discord.
     """
-    print(f'{self.user} has connected to Discord!')
-    await self.set_status()
+    logger.info('Bot has successfully connected as %s.', {self.user.name})
     # pylint: disable=no-member
-    self.check_comed_prices.start()
-
-  async def set_status(self):
-    """
-    Set the bot's status on Discord.
-    """
-    await self.change_presence(activity=discord.Activity(
-      type=discord.ActivityType.listening, name="/help")
-    )
+    self.send_price_alerts.start()
+    self.update_price_to_compare_weekly.start()
 
   async def load_commands(self):
     """
@@ -139,8 +133,9 @@ class Bot(discord.Client):
           importlib.reload(module)
           if hasattr(module, 'setup') and callable(module.setup):
             module.setup(self)
+          logger.info('The "%s" command has been loaded successfully', module_name)
         except ImportError as e:
-          log_err(f"Failed to load extension {filename[:-3]}: {str(e)}")
+          logger.error("Failed to load extension %s: %s", filename[:-3], str(e))
 
 bot = Bot()
 
@@ -157,4 +152,4 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     await interaction.response.send_message(Msg.PERM_ERR, ephemeral=True)
   else:
     await interaction.response.send_message(Msg.CMD_ERR, ephemeral=True)
-  log_err(f"Command error for user {interaction.user.id}: {str(error)}")
+  logger.error("Command error for user %s: %s", interaction.user.id, str(error))
