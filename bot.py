@@ -44,9 +44,16 @@ class Bot(discord.Client):
     """
     Update the price to compare from the ComEd website.
     """
-    self.price_to_compare = await fetch_comed_price_to_compare(self.price_to_compare_url)
-    if self.price_to_compare is None:
-      logger.error("Failed to fetch ComEd price to compare")
+    price = await fetch_comed_price_to_compare(self.price_to_compare_url)
+    if price is None:
+      if self.price_to_compare is None:
+        self.price_to_compare = 6.9
+        logger.error("Failed to fetch comparison price; defaulting to 6.9")
+      else:
+        logger.error("Failed to fetch comparison price; keeping previous value of %s", self.price_to_compare)
+    else:
+      self.price_to_compare = price
+      logger.info("Updated comparison price to %s", self.price_to_compare)
 
   async def get_comed_price(self):
     """
